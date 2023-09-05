@@ -129,17 +129,17 @@ class Move_gui(tk.Toplevel):
         value = int(self.value.get())
         print(sel_p1, self.value)
         print((p1[sel_p1], p1[sel_p2]), (p1[sel_p2] - value, p1[sel_p1] + value))
-        if value >= 1 and value <= p1[sel_p2]:
-            move(p1, sel_p1, value)
-            tkinter.messagebox.showinfo(title='이동', message='이동에 성공했습니다!\n\n현재 상황:\n내 손: 왼손 {0}, 오른손 {1}\n상대 손: 왼손 {2}, 오른손 {3}'
-                                        .format(p1['l'], p1['r'], p2['l'], p2['r']))
-            self.destroy()
-        elif p1[sel_p1] + value > 5:
+        if p1[sel_p1] + value > 5:
             tkinter.messagebox.showerror(title='오류', message='선택한 값이 너무 커서 더할 수 없습니다.')
         elif p1[sel_p2] - value < 0:
             tkinter.messagebox.showerror(title='오류', message='선택한 값이 너무 커서 뺼 수 없습니다.')
         elif (p1[sel_p1], p1[sel_p2]) == (p1[sel_p2] - value, p1[sel_p1] + value):
             tkinter.messagebox.showerror(title='오류', message='값의 위치만 바꿀 수 없습니다.')
+        elif value >= 1 and value <= p1[sel_p2]:
+            move(p1, sel_p1, value)
+            tkinter.messagebox.showinfo(title='이동', message='이동에 성공했습니다!\n\n현재 상황:\n내 손: 왼손 {0}, 오른손 {1}\n상대 손: 왼손 {2}, 오른손 {3}'
+                                        .format(p1['l'], p1['r'], p2['l'], p2['r']))
+            self.destroy()
         self.destroy()
 class App(tk.Tk):
     def __init__(self):
