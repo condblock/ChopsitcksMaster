@@ -165,7 +165,6 @@ class App(tk.Tk):
         Move_gui.grab_set(self)
         
 
-
 if __name__ == "__main__":
     app = App()
     app.mainloop()
