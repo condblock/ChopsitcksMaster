@@ -54,16 +54,21 @@ def convert_theta_into_pi(theta):
     [m, n] = theta.shape
     pi = np.zeros((m, n))
     for i in range(0, m):
-        if (theta[i, :] == [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]).all():
-            pi[i, :] = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        if np.sum(theta[i, :]) == 0:  # theta의 합이 0인 경우
+            pi[i, :] = np.ones(n) / n  # 모든 원소에 동일한 확률 부여
         else:
             pi[i, :] = theta[i, :] / np.nansum(theta[i, :])
     pi = np.nan_to_num(pi)
     return pi
 
-def get_next_s(pi, state):
+def get_state_number(state):
+    return state[0, 0] * 1 + state[0, 1] * 6 + state[1, 0] * 36 + state[1, 1] * 216
+
+def get_next_state(pi, state):
     action = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
-    get_action = np.random.choice(action, p=pi[state, :])
+    act_number = get_state_number(state)
+    if np.random.rand()
+    get_action = np.random.choice(action, p=pi[act_number, :])
     if get_action == 0:
         np.put(state, [1,0], state[0,0] + [1,0])
     elif get_action == 1:
@@ -73,24 +78,45 @@ def get_next_s(pi, state):
     elif get_action == 3:
         np.put(state, [1,1], state[0,1] + [1,1])
     elif get_action >= 4 and get_action <= 8:
-        np.put(state, [0,0], state[0,0] - (get_action - 3))
-        np.put(state, [0,1], state[0,1] + (get_action - 3))
+        np.put(state, [0,0], state[0,0] + (get_action - 3))
+        np.put(state, [0,1], state[0,1] - (get_action - 3))
     elif get_action >= 9 and get_action <= 13:
-        np.put(state, [0,0], state[0,0] + (get_action - 8))
-        np.put(state, [0,1], state[0,1] - (get_action - 8))
+        np.put(state, [0,0], state[0,0] - (get_action - 8))
+        np.put(state, [0,1], state[0,1] + (get_action - 8))
     if np.any(state > 5):
         state[state > 5] = 0
-    return 
+    return state
+
+def reverse_state(state):
+    return np.array([state[1, :],state[0, :]])
 
 def env(pi):
     state = np.array([[0, 0], [0, 0]])
-    state_history = [0]
-    while state[1, :] == [0, 0]:
+    state_history = np.array([[[0,0],[0,0]]])
+    turn = 0
+    while (1):
+        turn += 1
+        if turn % 2 == 1:
+            next_state = get_next_state(pi, state)
+            state_history = np.concatenate((state_history, [next_state]), axis=0)
+            s = next_state
+        else:
+            next_state = reverse_state(get_next_state(pi, reverse_state(state)))
+            state_history = np.concatenate((state_history, [next_state]), axis=0)
+            s = next_state
+        
+        if (state[0, :] != [0, 0]).all() and (state[1, :] != [0, 0]).all():
+            break
+    return state_history
 
-    
+
 theta = getFullTheta()
-theta = convert_theta_into_pi(theta)
+pi_0 = convert_theta_into_pi(theta)
 print(theta)
 print(theta.shape)
 
-np.save('C:/Users/user/Documents/GitHub/ChopsitcksMaster/theta', theta)
+
+
+state_history = env(pi_0)
+print(state_history)
+np.save('C:/Users/sunwo/Documents/GitHub/ChopsitcksMaster/theta', theta)
