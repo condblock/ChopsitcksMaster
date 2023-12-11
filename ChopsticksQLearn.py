@@ -1,5 +1,6 @@
 import numpy as np
-
+import time
+import random
 
 '''
 함수 구현
@@ -28,17 +29,17 @@ def getSingleTheta(state):
         if d != 0:
             np.put(theta, [3], 1)
     # 교환
-    for i in range(0, min(5-a, b)): # 빼기가 가능한 경우
-        if a + i <= 5 and b - i >= 0:
-            np.put(theta, [i+4], 1)
-    for i in range(0, min(5-b, a)): # 더하기가 가능한 경우
-        if a - i >= 0 and b + i <= 5:
-            np.put(theta, [i+9], 1)
+    for i in range(1, 6): # 빼기가 가능한 경우
+        if a - i >= 0 and b + i >= 5 and [a - i, b + i] != [b, a]:
+            np.put(theta, [i+3], 1)
+    for i in range(1, 6): # 더하기가 가능한 경우
+        if a + i <= 5 and b - i >= 0 and [a + i, b - i] != [b, a]:
+            np.put(theta, [i+8], 1)
     return theta
 
 # 모든 정책 나열
 def getFullTheta():
-    state = np.array([[0, 0], [0, 0]])
+    state = np.array([[1, 0], [0, 0]])
     theta = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0]])
     while True:
         single_theta = getSingleTheta(state)
@@ -76,11 +77,12 @@ def convert_theta_into_pi(theta): # 정책 모두 0, 1로 되어있는것 비율
 
 def Q_learning(state, action, reward, state_next, Q, eta, gamma):
 
+    state_number = get_state_number(state)
+    state_next_number = get_state_number(state_next)
+
     # 정책 의존성 없는 Q 러닝
-    if (state[1, :] == [0, 0]).all(): # 이겼을 때
-        Q[state, action] = Q[state, action] + eta * (reward - Q[state, action])
-    else:
-        Q[state, action] = Q[state, action] + eta * (reward + gamma * np.nanmax(Q[state_next, :]) - Q[state, action])
+    Q[state_number, action] = Q[state_number, action] + eta * (reward + gamma * np.nanmax(Q[state_next_number, :]) - Q[state_number, action])
+    
 
     return Q
 
@@ -102,60 +104,71 @@ def get_action(state, Q, epsilon, pi_0): # action 구하기
     return next_action
 
 def get_next_state(state, action): # 다음 state 구하기
+    s_next = state.copy()
     if action == 0:
-        state[1, 0] += state[0, 0]
+        s_next[1, 0] += s_next[0, 0]
     elif action == 1:
-        state[1, 1] += state[0, 0]
+        s_next[1, 1] += s_next[0, 0]
     elif action == 2:
-        state[1, 0] += state[0, 1]
+        s_next[1, 0] += s_next[0, 1]
     elif action == 3:
-        state[1, 1] += state[0, 1]
+        s_next[1, 1] += s_next[0, 1]
     elif action >= 4 and action <= 8:
-        state[0, 0] += action - 3
-        state[0, 1] -= action - 3
+        s_next[0, 0] -= action - 3
+        s_next[0, 1] += action - 3
     elif action >= 9 and action <= 13:
-        state[0, 0] -= action - 8
-        state[0, 1] += action - 8
-    if np.any(state > 5):
-        state[state > 5] = 0
-    return state
+        s_next[0, 0] += action - 8
+        s_next[0, 1] -= action - 8
+    if np.any(s_next > 5):
+        s_next[s_next > 5] = 0
+    return s_next
 
-def reverse_state(state): # state 전환
-    return np.array([state[1, :],state[0, :]])
-
-def env(Q, epsilon, eta, gamma, pi): # 환경
+def env(Q, epsilon, eta, gamma, pi): # 1대1 환경
     state = np.array([[1, 1], [1, 1]]) # 초기 상태
-    turn = 0 # 턴 수
-    action = action_next = get_action(state, Q, epsilon, pi) # 초기 행동
+    turn = 1 # 턴 수
 
-    while (1):
-        action = action_next # 행동 결정
-        turn += 1 # 턴 수
+    while(1): # 무한 루프
+        is_player1 = turn % 2 == 1 # 1P or 2P 판별
+
+        # 플레이어 입장에서 상태 변환
+        state_perspective = state if is_player1 else state[::-1]
+
+        # 행동 결정
+        action = get_action(state_perspective, Q, epsilon, pi) 
 
         # 다음 단계 state 구하기
-        state_next = get_next_state(state, action) 
+        state_next_perspective = get_next_state(state_perspective, action)
 
-        # 보상 부여 후 다음 행동 계산
-        if (state[1, :] == [0, 0]).all(): # 이긴 경우
+        # 다음 상태를 실제 상태에 반영
+        state_next = state_next_perspective if is_player1 else state_next_perspective[::-1]
+
+        # 보상 부여 및 다음 행동 계산
+        if (state_next_perspective[1, 0] == 0 and state_next_perspective[1, 1] == 0): # 이긴 경우
             reward = 1
-            action_next = np.nan
+        elif (state_next_perspective[0, 0] == 0 and state_next_perspective[0, 1] == 0): # 진 경우
+            reward = -1
         else:
-            # 플레이어의 시점에 따라 state 뒤집기
-            if turn % 2 == 0: 
-                state = reverse_state(state)
             reward = 0
-            action_next = get_action(state_next, Q, epsilon, pi)
 
         # 가치함수 수정
-        Q = Q_learning(state, action, reward, state_next, Q, eta, gamma)
-
-
+        Q = Q_learning(state_perspective, action, reward, state_next_perspective, Q, eta, gamma)
+        
+        #if reward == 1: # 이긴 경우 이전 행동 가치 함수 보상 -1
+        #    Q = Q_learning(state_perspective_last, action_last, -1, state_next_perspective_last, Q, eta, gamma)
+        
         # 종료 여부 판정
-        if (state[0, :] == [0, 0]).all() or (state[1, :] == [0, 0]).all():
+        if (state_next[0, 0] == 0 and state_next[0, 1] == 0) or (state_next[1, 0] == 0 and state_next[1, 1] == 0):
             break
         else:
+            state_perspective_last = state_perspective.copy()
+            state_next_perspective_last = state_next_perspective.copy()
+            action_last = action
             state = state_next
+        turn += 1 # 턴 수 증가
+
     return [turn, Q]
+
+
 
 
 '''
@@ -172,28 +185,38 @@ pi_0 = convert_theta_into_pi(theta)
 Q = np.random.rand(a, b) * theta_0 * 0.1
 
 # 초기 설정
-eta = 0.1
-gamma = 0.9
-epsilon = 0.5
-v = np.nanmax(Q, axis=1)
-is_continue = True
-episode = 1
-V = []
-V.append(np.nanmax(Q, axis=1))
+eta = 0.001 # 학습률
+gamma = 0.1 # 시간할인률
+epsilon = 0.9 # 무작위 값을 취할 확률
+v = np.nanmax(Q, axis=1) # 각 상태마다 가치의 최댓값 계산
+is_continue = True # 루프용
+episode = 1 # 에피소드 수
+V = [] # 각 에피소드별로 상태가지 저장
+V.append(np.nanmax(Q, axis=1)) # 상태별로 행동가치의 최댓값 계산
 
 while is_continue:
     print("에피소드 " + str(episode))
 
-    epsilon /= 2
+    # epsilon 값 감소
+    #epsilon = max(0.01, epsilon - 0.000001)
 
+    # 턴 수와 Q함수 저장
     [turn, Q] = env(Q, epsilon, eta, gamma, pi_0)
 
+    # 상태가치 변화값 계산
     new_v = np.nanmax(Q, axis=1)
-    print("상태가치 변화" + str(np.sum(np.abs(new_v - v))))
-    v = new_v
+    change = np.sum(np.abs(new_v - v))
+
+    # 출력
+    print("상태가치 변화: " + str(change))
     print("걸린 턴 수: " + str(turn))
 
+    v = new_v
+
+    # 반복
     episode += 1
-    if episode > 100:
+    if change < 0.002 and episode > 10000:
         break
+
 np.save('C:/Users/sunwo/Documents/GitHub/ChopsitcksMaster/Q', Q)
+print('성공적으로 가치함수를 저장하였습니다')
