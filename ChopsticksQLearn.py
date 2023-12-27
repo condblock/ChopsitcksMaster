@@ -10,7 +10,7 @@ import random
 
 # state 받으면 정책 하나 만들기
 def getSingleTheta(state):
-    theta = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
+    theta = np.array([[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]])
     a = state[0, 0]
     b = state[0, 1]
     c = state[1, 0]
@@ -29,31 +29,32 @@ def getSingleTheta(state):
         if d != 0:
             np.put(theta, [3], 1)
     # 교환
-    for i in range(1, 6): # 빼기가 가능한 경우
-        if a - i >= 0 and b + i >= 5 and [a - i, b + i] != [b, a]:
+    for i in range(1, 5): # 빼기가 가능한 경우
+        if a - i >= 0 and b + i >= 4 and [a - i, b + i] != [b, a]:
             np.put(theta, [i+3], 1)
-    for i in range(1, 6): # 더하기가 가능한 경우
-        if a + i <= 5 and b - i >= 0 and [a + i, b - i] != [b, a]:
-            np.put(theta, [i+8], 1)
+    for i in range(1, 5): # 더하기가 가능한 경우
+        if a + i <= 4 and b - i >= 0 and [a + i, b - i] != [b, a]:
+            np.put(theta, [i+7], 1)
     return theta
 
 # 모든 정책 나열
 def getFullTheta():
     state = np.array([[1, 0], [0, 0]])
-    theta = np.array([[0,0,0,0,0,0,0,0,0,0,0,0,0,0]])
+    theta = np.array([[0,0,0,0,0,0,0,0,0,0,0,0]])
     while True:
         single_theta = getSingleTheta(state)
+        print(single_theta)
         theta = np.vstack((theta, single_theta))
-        if state[0][0] < 5:
+        if state[0][0] < 4:
             np.put(state, [0][0], state[0][0]+1)
-        elif state[0][1] < 5:
+        elif state[0][1] < 4:
             np.put(state, [0], 0)
             np.put(state, [1], state[0][1]+1)
-        elif state[1][0] < 5:
+        elif state[1][0] < 4:
             np.put(state, [0], 0)
             np.put(state, [1], 0)
             np.put(state, [2], state[1][0]+1)
-        elif state[1][1] <  5:
+        elif state[1][1] < 4:
             np.put(state, [0], 0)
             np.put(state, [1], 0)
             np.put(state, [2], 0)
@@ -89,10 +90,10 @@ def Q_learning(state, action, reward, state_next, Q, eta, gamma):
 # epsilon-greedy 알고리즘
 
 def get_state_number(state): # 몇번째 정책인지 구하기
-    return state[0, 0] * 1 + state[0, 1] * 6 + state[1, 0] * 36 + state[1, 1] * 216
+    return state[0, 0] * 1 + state[0, 1] * 5 + state[1, 0] * 25 + state[1, 1] * 125
 
 def get_action(state, Q, epsilon, pi_0): # action 구하기
-    action = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    action = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
     act_number = get_state_number(state)
     # 행동 결정
     if np.random.rand() < epsilon:
@@ -113,14 +114,14 @@ def get_next_state(state, action): # 다음 state 구하기
         s_next[1, 0] += s_next[0, 1]
     elif action == 3:
         s_next[1, 1] += s_next[0, 1]
-    elif action >= 4 and action <= 8:
+    elif action >= 4 and action <= 7:
         s_next[0, 0] -= action - 3
         s_next[0, 1] += action - 3
-    elif action >= 9 and action <= 13:
-        s_next[0, 0] += action - 8
-        s_next[0, 1] -= action - 8
-    if np.any(s_next > 5):
-        s_next[s_next > 5] = 0
+    elif action >= 8 and action <= 11:
+        s_next[0, 0] += action - 7
+        s_next[0, 1] -= action - 7
+    if np.any(s_next > 4):
+        s_next[s_next > 4] = 0
     return s_next
 
 def env(Q, epsilon, eta, gamma, pi): # 1대1 환경
@@ -150,11 +151,11 @@ def env(Q, epsilon, eta, gamma, pi): # 1대1 환경
         else:
             reward = 0
 
+        if reward == 1: # 이긴 경우 이전 행동 가치 함수 보상 -1
+            Q = Q_learning(state_perspective_last, action_last, -1, state_next_perspective_last, Q, eta, gamma)
+
         # 가치함수 수정
         Q = Q_learning(state_perspective, action, reward, state_next_perspective, Q, eta, gamma)
-        
-        #if reward == 1: # 이긴 경우 이전 행동 가치 함수 보상 -1
-        #    Q = Q_learning(state_perspective_last, action_last, -1, state_next_perspective_last, Q, eta, gamma)
         
         # 종료 여부 판정
         if (state_next[0, 0] == 0 and state_next[0, 1] == 0) or (state_next[1, 0] == 0 and state_next[1, 1] == 0):

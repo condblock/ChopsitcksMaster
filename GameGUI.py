@@ -6,7 +6,7 @@ import numpy as np
 # 공격, 이동 함수
 def atk(state, atk, vict):
     state[1, vict] += state[0, atk]
-    if state[1, vict] > 5:
+    if state[1, vict] > 4:
         state[1, vict] = 0
     return state
 
@@ -21,7 +21,7 @@ Q = np.load('C:/Users/sunwo/Documents/GitHub/ChopsitcksMaster/Q.npy')
 
 # 상태를 숫자로 변환
 def get_state_number(state):
-    return state[0, 0] * 1 + state[0, 1] * 6 + state[1, 0] * 36 + state[1, 1] * 216
+    return state[0, 0] * 1 + state[0, 1] * 5 + state[1, 0] * 25 + state[1, 1] * 125
 
 
 # ai 행동
@@ -45,12 +45,12 @@ def ai_action(state):
     elif ai_action == 3:
         state_temp = atk(state_temp, 1, 1)
         action_str = f"AI가 오른손으로 오른손을 공격했습니다."
-    elif ai_action <= 8:
+    elif ai_action <= 7:
         state_temp = move(state_temp, -(ai_action - 3))
         action_str = f"AI가 왼손으로 -{ai_action - 3}을 이동했습니다."
     else:
-        state_temp = move(state_temp, ai_action - 8)
-        action_str = f"AI가 왼손으로 {ai_action - 8}을 이동했습니다."
+        state_temp = move(state_temp, ai_action - 7)
+        action_str = f"AI가 왼손으로 {ai_action - 7}을 이동했습니다."
     tk.messagebox.showinfo(title='알림', message=action_str)
     state_temp = state_temp[::-1]
     return state_temp
@@ -126,8 +126,8 @@ class Move_gui(tk.Toplevel):
         self.value = tk.StringVar()
         spin_box = ttk.Spinbox(
             self,
-            from_=-min(self.parent.state[0, 0], 5 - self.parent.state[0, 1]),  # 오른손에서 왼손으로 옮길 수 있는 최대 양을 계산
-            to=min(self.parent.state[0, 1], 5 - self.parent.state[0, 0]),  # 왼손에서 오른손으로 옮길 수 있는 최대 양을 계산
+            from_=-min(self.parent.state[0, 0], 4 - self.parent.state[0, 1]),  # 오른손에서 왼손으로 옮길 수 있는 최대 양을 계산
+            to=min(self.parent.state[0, 1], 4 - self.parent.state[0, 0]),  # 왼손에서 오른손으로 옮길 수 있는 최대 양을 계산
             textvariable=self.value,
             wrap=True)
         spin_box.pack()
