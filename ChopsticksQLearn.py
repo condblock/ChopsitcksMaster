@@ -43,7 +43,6 @@ def getFullTheta():
     theta = np.array([[0,0,0,0,0,0,0,0,0,0,0,0]])
     while True:
         single_theta = getSingleTheta(state)
-        print(single_theta)
         theta = np.vstack((theta, single_theta))
         if state[0][0] < 4:
             np.put(state, [0][0], state[0][0]+1)
@@ -83,7 +82,6 @@ def Q_learning(state, action, reward, state_next, Q, eta, gamma):
 
     # 정책 의존성 없는 Q 러닝
     Q[state_number, action] = Q[state_number, action] + eta * (reward + gamma * np.nanmax(Q[state_next_number, :]) - Q[state_number, action])
-    
 
     return Q
 
@@ -136,7 +134,7 @@ def env(Q, epsilon, eta, gamma, pi): # 1대1 환경
 
         # 행동 결정
         action = get_action(state_perspective, Q, epsilon, pi) 
-
+        
         # 다음 단계 state 구하기
         state_next_perspective = get_next_state(state_perspective, action)
 
@@ -151,12 +149,18 @@ def env(Q, epsilon, eta, gamma, pi): # 1대1 환경
         else:
             reward = 0
 
+        
         if reward == 1: # 이긴 경우 이전 행동 가치 함수 보상 -1
             Q = Q_learning(state_perspective_last, action_last, -1, state_next_perspective_last, Q, eta, gamma)
 
         # 가치함수 수정
         Q = Q_learning(state_perspective, action, reward, state_next_perspective, Q, eta, gamma)
         
+        # 모두 0 또는 그 이하일 경우
+        
+        if np.nanargmax(Q[get_state_number(state_perspective), :]) <= 0:
+            Q[get_state_number(state_perspective), :] = pi[get_state_number(state_perspective), :]
+
         # 종료 여부 판정
         if (state_next[0, 0] == 0 and state_next[0, 1] == 0) or (state_next[1, 0] == 0 and state_next[1, 1] == 0):
             break
@@ -183,11 +187,11 @@ pi_0 = convert_theta_into_pi(theta)
 
 # 초기 Q 정의
 [a, b] = theta_0.shape
-Q = np.random.rand(a, b) * theta_0 * 0.1
+Q = np.random.rand(a, b) * theta_0
 
 # 초기 설정
-eta = 0.001 # 학습률
-gamma = 0.1 # 시간할인률
+eta = 0.01 # 학습률
+gamma = 0.01 # 시간할인률
 epsilon = 0.9 # 무작위 값을 취할 확률
 v = np.nanmax(Q, axis=1) # 각 상태마다 가치의 최댓값 계산
 is_continue = True # 루프용
@@ -199,7 +203,7 @@ while is_continue:
     print("에피소드 " + str(episode))
 
     # epsilon 값 감소
-    #epsilon = max(0.01, epsilon - 0.000001)
+    epsilon = max(0.01, epsilon - 0.01)
 
     # 턴 수와 Q함수 저장
     [turn, Q] = env(Q, epsilon, eta, gamma, pi_0)
@@ -219,5 +223,5 @@ while is_continue:
     if change < 0.002 and episode > 10000:
         break
 
-np.save('C:/Users/sunwo/Documents/GitHub/ChopsitcksMaster/Q', Q)
+np.save('C:/Users/user/Documents/GitHub/ChopsitcksMaster/Q', Q)
 print('성공적으로 가치함수를 저장하였습니다')

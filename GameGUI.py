@@ -17,7 +17,7 @@ def move(state, value):
     return new_state
 
 # Q값 불러오기
-Q = np.load('C:/Users/sunwo/Documents/GitHub/ChopsitcksMaster/Q.npy')
+Q = np.load('C:/Users/user/Documents/GitHub/ChopsitcksMaster/Q.npy')
 
 # 상태를 숫자로 변환
 def get_state_number(state):
@@ -112,7 +112,11 @@ class Atk_gui(tk.Toplevel):
             if (self.parent.state != np.array([[1, 1], [1, 1]])).any():
                 self.after(0, self.parent.ai_turn(self.parent.state))
                 self.parent.state = check(self.parent.state)
-                self.parent.update_state()
+                if (self.parent.state == np.array([[1, 1], [1, 1]])).all():
+                    self.parent.turn_choice()
+            else:
+                self.parent.turn_choice()
+            self.parent.update_state()
             self.destroy()
 
 class Move_gui(tk.Toplevel):
@@ -151,7 +155,11 @@ class Move_gui(tk.Toplevel):
             self.parent.update_state()
             if (self.parent.state != np.array([[1, 1], [1, 1]])).any():
                 self.parent.state = check(self.parent.state)
-                self.parent.update_state()
+                if (self.parent.state == np.array([[1, 1], [1, 1]])).all():
+                    self.parent.turn_choice()
+            else:
+                self.parent.turn_choice()
+            self.parent.update_state()
             self.destroy()
             self.after(0, self.parent.ai_turn(self.parent.state))
 
@@ -173,6 +181,15 @@ class Game(tk.Tk):
         ttk.Button(self,
                 text='이동',
                 command=self.move).pack(fill='x', padx=5, pady=5)
+        self.turn_choice()
+
+    def turn_choice(self):
+        choice = tk.messagebox.askyesno("선공 선택", "선공을 하시겠습니까?")
+        if choice:
+            self.turn = 0
+        else:
+            self.turn = 1
+            self.ai_turn(self.state)
 
     def update_state(self):
         self.state_label.config(text=f"내 상태: 왼손 {self.state[0,0]}, 오른손 {self.state[0,1]}\n상대 상태: 왼손 {self.state[1,0]}, 오른손 {self.state[1,1]}")
