@@ -6,7 +6,7 @@ import numpy as np
 # 공격, 이동 함수
 def atk(state, atk, vict):
     state[1, vict] += state[0, atk]
-    if state[1, vict] > 4:
+    if state[1, vict] >= 5:
         state[1, vict] = 0
     return state
 
@@ -25,8 +25,7 @@ def get_state_number(state):
 
 
 # ai 행동
-def ai_action(state):
-    global Q
+def ai_action(state, Q):
     state_temp = state[::-1]
 
     act_number = get_state_number(state_temp)
@@ -203,7 +202,7 @@ class Game(tk.Tk):
         self.update_state()
 
     def ai_turn(self, state):
-        self.state = ai_action(state)
+        self.state = ai_action(state, Q)
         self.update_state()
         
 if __name__ == "__main__":

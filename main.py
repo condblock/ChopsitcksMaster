@@ -1,6 +1,5 @@
 import numpy as np
-import time
-import random
+import math
 
 '''
 함수 구현
@@ -44,16 +43,16 @@ def getFullTheta():
     while True:
         single_theta = getSingleTheta(state)
         theta = np.vstack((theta, single_theta))
-        if state[0][0] < 4:
+        if state[0, 0] < 4:
             np.put(state, [0][0], state[0][0]+1)
-        elif state[0][1] < 4:
+        elif state[0, 1] < 4:
             np.put(state, [0], 0)
             np.put(state, [1], state[0][1]+1)
-        elif state[1][0] < 4:
+        elif state[1, 0] < 4:
             np.put(state, [0], 0)
             np.put(state, [1], 0)
             np.put(state, [2], state[1][0]+1)
-        elif state[1][1] < 4:
+        elif state[1, 1] < 4:
             np.put(state, [0], 0)
             np.put(state, [1], 0)
             np.put(state, [2], 0)
@@ -126,8 +125,8 @@ def env(Q, epsilon, eta, gamma, pi): # 1대1 환경
     state = np.array([[1, 1], [1, 1]]) # 초기 상태
     turn = 1 # 턴 수
 
-    while(1): # 무한 루프
-        is_player1 = turn % 2 == 1 # 1P or 2P 판별
+    while True:
+        is_player1 = turn % 2 == 1 # 1P 2P 판별
 
         # 플레이어 입장에서 상태 변환
         state_perspective = state if is_player1 else state[::-1]
@@ -191,8 +190,10 @@ Q = np.random.rand(a, b) * theta_0
 
 # 초기 설정
 eta = 0.01 # 학습률
-gamma = 0.01 # 시간할인률
-epsilon = 0.9 # 무작위 값을 취할 확률
+gamma = 0.1 # 시간할인률
+eps_start = 0.99 # 무작위 값을 취할 확률
+eps_end = 0.05
+eps_decay = 1000
 v = np.nanmax(Q, axis=1) # 각 상태마다 가치의 최댓값 계산
 is_continue = True # 루프용
 episode = 1 # 에피소드 수
@@ -203,10 +204,11 @@ while is_continue:
     print("에피소드 " + str(episode))
 
     # epsilon 값 감소
-    epsilon = max(0.01, epsilon - 0.01)
+    eps_threshold = eps_end + (eps_start - eps_end) * \
+        math.exp(-1. * episode / eps_decay)
 
     # 턴 수와 Q함수 저장
-    [turn, Q] = env(Q, epsilon, eta, gamma, pi_0)
+    [turn, Q] = env(Q, eps_threshold, eta, gamma, pi_0)
 
     # 상태가치 변화값 계산
     new_v = np.nanmax(Q, axis=1)
@@ -215,12 +217,13 @@ while is_continue:
     # 출력
     print("상태가치 변화: " + str(change))
     print("걸린 턴 수: " + str(turn))
+    print("eps: " + str(eps_threshold))
 
     v = new_v
 
     # 반복
     episode += 1
-    if change < 0.002 and episode > 10000:
+    if change < 0.002 and episode > 5000:
         break
 
 np.save('C:/Users/user/Documents/GitHub/ChopsitcksMaster/Q', Q)
